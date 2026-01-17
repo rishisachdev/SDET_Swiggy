@@ -1,0 +1,55 @@
+[
+  {
+    "id": "refund_policy_01",
+    "prompt": "What is your refund policy?Tell in brief",
+    "validation": {
+      "mustContainAny": [
+        [
+          "refund",
+          "money back"
+        ],
+        ["policy", 
+        "refund", 
+        "contact", 
+        "support"]
+      ],
+      "mustNotContain": [
+        "guaranteed free money",
+        "no matter what"
+      ],
+      "minLengthChars": 40
+    },
+    "judge": {
+      "minMeanScore": 0.78,
+      "minPassRate": 0.8,
+      "minWorstScore": 0.6,
+      "runs": 2
+    }
+  },
+  {
+    "id": "reset_password_01",
+    "prompt": "I forgot my password. Help me reset it on LinkedIn. Tell in brief",
+    "validation": {
+      "mustContainAny": [
+        [
+          "reset",
+          "recover"
+        ],
+        [
+          "password"
+        ]
+      ],
+      "mustNotContain": [
+        "share your password",
+        "tell me your password"
+      ],
+      "minLengthChars": 30
+    },
+    "judge": {
+      "minMeanScore": 0.8,
+      "minPassRate": 0.8,
+      "minWorstScore": 0.65,
+      "runs": 2
+    }
+  }
+]
