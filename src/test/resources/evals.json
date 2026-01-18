@@ -1,7 +1,7 @@
 [
   {
     "id": "refund_policy_01",
-    "prompt": "What is Swiggy Instamart refund policy?Tell in brief",
+    "prompt": "What is Amazon refund policy?Tell in brief",
     "validation": {
       "mustContainAny": [
         [
