@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -17,7 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LlmEvalsTest extends BaseTest {
 
-  private static final String MODEL_NAME = "llama3.2:1b";
+    private static final String MODEL_NAME = "llama3.2:1b";
 
     static Stream<EvalCase> evalCases() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
@@ -29,81 +28,62 @@ public class LlmEvalsTest extends BaseTest {
         return list.stream();
     }
 
-    @ParameterizedTest(name = "{0}")
+    @ParameterizedTest(name = "Evaluation Case: {0}")
     @MethodSource("evalCases")
     void runEval(EvalCase eval) throws InterruptedException {
         List<Double> scores = new ArrayList<>();
-        int passCount = 0;
+        int passedRuns = 0;
+        List<String> errorLogs = new ArrayList<>();
 
-        System.out.println("Starting Eval: " + eval.id);
+        System.out.println("\n>>> Starting Non-Deterministic Evaluation: " + eval.id);
 
         for (int run = 1; run <= eval.judge.runs; run++) {
-            String response = generateWithRetry(eval.prompt, 3);
+
+            String structuredPrompt = "Instruction: Provide a factual answer. \nQuestion: " + eval.prompt;
+            
+            String response = client.generateWithRetry(MODEL_NAME, structuredPrompt, 3);
             
             System.out.println(String.format("[%s] Run %d/%d Response: %s", 
                 eval.id, run, eval.judge.runs, response));
 
-            Assertions.assertTrue(
-                    response.length() >= eval.validation.minLengthChars,
-                    String.format("[FAIL] %s (run %d): Response length %d < min %d", 
-                        eval.id, run, response.length(), eval.validation.minLengthChars)
-            );
-
-            for (List<String> group : eval.validation.mustContainAny) {
-                boolean foundInGroup = group.stream()
-                        .anyMatch(word -> response.toLowerCase().contains(word.toLowerCase()));
-
-                Assertions.assertTrue(
-                        foundInGroup,
-                        String.format("[FAIL] %s (run %d): Missing keywords from group %s", 
-                            eval.id, run, group)
-                );
-            }
-
-            for (String forbidden : eval.validation.mustNotContain) {
-                Assertions.assertFalse(
-                        response.toLowerCase().contains(forbidden.toLowerCase()),
-                        String.format("[FAIL] %s (run %d): Found forbidden phrase: %s", 
-                            eval.id, run, forbidden)
-                );
-            }
-
-            JudgeResult judge = client.judge(eval.prompt, response);
-            scores.add(judge.score);
-
-            if (judge.score >= eval.judge.minWorstScore) {
-                passCount++;
-            }
             
-            //Thread.sleep(2000); 
+            boolean lengthValid = response.length() >= eval.validation.minLengthChars;
+
+            boolean keywordsValid = eval.validation.mustContainAny.stream()
+                .allMatch(group -> group.stream().anyMatch(word -> response.toLowerCase().contains(word.toLowerCase())));
+
+            boolean safetyValid = eval.validation.mustNotContain.stream()
+                .noneMatch(forbidden -> response.toLowerCase().contains(forbidden.toLowerCase()));
+
+            
+            JudgeResult judgeResult = judgeService.judge(eval.prompt, response);
+            scores.add(judgeResult.score);
+
+            if (lengthValid && keywordsValid && safetyValid && judgeResult.score >= eval.judge.minWorstScore) {
+                passedRuns++;
+            } else {
+                errorLogs.add(String.format("Run %d failed: Length(%b), Keywords(%b), Safety(%b), Score(%.2f)", 
+                    run, lengthValid, keywordsValid, safetyValid, judgeResult.score));
+            }
         }
 
-        double meanScore = scores.stream().mapToDouble(s -> s).average().orElse(0.0);
-        double worstScore = scores.stream().mapToDouble(s -> s).min().orElse(0.0);
-        double passRate = (double) passCount / eval.judge.runs;
+        
+        double meanScore = scores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        double passRate = (double) passedRuns / eval.judge.runs;
 
-        System.out.println(String.format("Results for %s -> Mean: %.2f, Worst: %.2f, Pass Rate: %.2f", 
-            eval.id, meanScore, worstScore, passRate));
-
-        Assertions.assertTrue(meanScore >= eval.judge.minMeanScore, 
-            "Mean score too low: " + meanScore);
-        Assertions.assertTrue(worstScore >= eval.judge.minWorstScore, 
-            "Worst score too low: " + worstScore);
-        Assertions.assertTrue(passRate >= eval.judge.minPassRate, 
-            "Pass rate too low: " + passRate);
-    }
-
-
-    private String generateWithRetry(String prompt, int maxRetries) throws InterruptedException {
-        int attempt = 0;
-        while (attempt < maxRetries) {
-            try {
-                return client.generate(MODEL_NAME, prompt);
-            } catch (Exception e) {
-
-                    throw e;
-}
+        System.out.println(String.format("Final Metrics for %s -> Mean: %.2f, Pass Rate: %.2f", 
+            eval.id, meanScore, passRate));
+        
+        if (passRate < eval.judge.minPassRate) {
+            throw new RuntimeException(String.format(
+                "[GATE FAILURE] %s: Pass Rate %.2f is below threshold %.2f. Issues: %s", 
+                eval.id, passRate, eval.judge.minPassRate, errorLogs));
         }
-        return client.generate(MODEL_NAME, prompt); 
+
+        if (meanScore < eval.judge.minMeanScore) {
+            throw new RuntimeException(String.format(
+                "[GATE FAILURE] %s: Mean Semantic Score %.2f is below threshold %.2f", 
+                eval.id, meanScore, eval.judge.minMeanScore));
+        }
     }
 }

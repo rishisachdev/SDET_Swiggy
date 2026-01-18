@@ -1,0 +1,6 @@
+com\example\llm\model\JudgeConfig.class
+com\example\llm\model\ValidationRules.class
+com\example\llm\client\LlmClient.class
+com\example\llm\model\EvalCase.class
+com\example\llm\model\JudgeResult.class
+com\example\llm\service\JudgeService.class
