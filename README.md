@@ -1,4 +1,4 @@
-### AI Response Validation Framework
+# AI Response Validation Framework
 The AI response validation framwork implements an automated test AI generated chatbot responses. Since LLM reponses can vary in wording, formatting, and phrasing even for the same prompt, traditional assertion based tests like exact string matching are unrelaible. To solve this, the utility checks the reponses using combination of semantic evaluation and rule checks.
 
 ## Overview
@@ -19,7 +19,7 @@ The AI response validation framwork implements an automated test AI generated ch
    Each eval is executed multiple times and semantic, safety and keyword validations are done. After all run, using results following outputs are generated:
    - Pass Rate= Passed runs / Total runs
    - Mean Semantic score = Average judge score scross runs
-The  test only fails when the thresholds are below certain limit.
+The test only fails when the thresholds are below certain limit.
 
  ## Limitations
  ### Higher execution time 
