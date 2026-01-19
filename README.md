@@ -21,6 +21,26 @@ The AI response validation framwork implements an automated test AI generated ch
    - Mean Semantic score = Average judge score scross runs
 The test only fails when the thresholds are below certain limit.
 
+## Ways to run
+
+### Option 1: Fully Automated Execution using CI/CD pipeline
+Daily AI runs are automatically executed using Github CI/CD automated execution and output can be viewed at SDET_Swiggy repo < Actions tab < select Daily AI Evaluation < Test < Run AI Evals < go to end of the file and the AI prompt execution will be shown.
+
+### Option 2: Using CI/CD pipeline with run button
+- Go to Actions tab in the SDET_Swiggy repo.
+- Select Daily AI Evaluation from the left bar.
+- Click Run workflow.
+- Open latest workflow < test < Run AI Evals < go to end of the file and the AI prompt execution will be shown.
+
+### Option 3: Using Manual Execution
+- Pull code from Github.
+- Download and open Ollama 3.2.
+- Run command mvn clean test in the terminal from project location in IDE such as VS code.
+- Output of AI prompts will be visible on the console along with threshholds.
+
+## Sample Output
+<img width="1260" height="732" alt="image" src="https://github.com/user-attachments/assets/0b004e46-71e7-4034-9184-9487aa7fc7dc" />
+
  ## Limitations
  ### Higher execution time 
  Running multiple tests per run ensure increases the overall runtime.
@@ -32,3 +52,4 @@ The test only fails when the thresholds are below certain limit.
  Edge cases and rare phrases may fail, if they are not covered by LLM validation / keywords.
  ### Resource Consumption
  LLM judging is effective for calculating the accuracy for the LLM response, but it needs high amount of resources and memory for accurate results.
+
